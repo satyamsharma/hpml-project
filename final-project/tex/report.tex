@@ -1,0 +1,56 @@
+\documentclass[conference]{IEEEtran}
+% \IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Comparing Hyperdimensional Computing to Deep Learning for Natural Language Processing Tasks}
+
+\author{\IEEEauthorblockN{Todd Morrill}
+\IEEEauthorblockA{\textit{Computer Science Department} \\
+\textit{Columbia University}\\
+tm3229@columbia.edu}
+\and
+\IEEEauthorblockN{Satyam Sharma}
+\IEEEauthorblockA{\textit{Computer Science Department} \\
+\textit{Columbia University}\\
+ss6522@columbia.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+    In this project, we will compare the performance of deep learning models (e.g. Transformers, Convolutional Neural Networks (CNN), Long Short-Term Memory (LSTM) models) to HDC models on a variety of NLP tasks using a range of metrics and evaluate their relative strengths and weaknesses.
+\end{abstract}
+
+\begin{IEEEkeywords}
+hyperdimensional computing, HDC, deep learning, natural language processing, NLP
+\end{IEEEkeywords}
+
+\section{Introduction}
+\cite{BEIR}
+
+\section{Results}
+
+% include table
+\begin{table}[htbp]
+\caption{HDC accuracy scores by dataset size.}
+\begin{center}
+    \include{analysis/hdc_data_size.tex}
+\end{center}
+\label{tab:hdc_acc}
+\end{table}
+
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv, bib.bib}
+\end{document}

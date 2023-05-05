@@ -1,0 +1,62 @@
+% This is a LaTeX document containing a final project proposal for high performance machine learning.
+% The proposal should be at most 2 pages.
+% Margins should be 1inch on all sides.
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{biblatex} %Imports biblatex package
+\addbibresource{bib.bib} %Import the bibliography file
+
+\title{Comparing Hyperdimensional Computing to Deep Learning for Natural Language Processing Tasks\\
+\large HPML Final Project Proposal}
+
+\author{Todd Morrill \\ tm3229@columbia.edu \and Satyam Sharma \\ ss6522@columbia.edu}
+\date{Friday, March 24, 2023}
+
+\begin{document}
+\maketitle
+
+\section{Goals and Objectives}
+Deep learning is currently the dominant approach in natural language processing (NLP). In particular, the Transformer \cite{Transformer} architecture has been shown to be effective for a wide range of NLP tasks, including language modeling (i.e. next word prediction), document retrieval, and document classification \cite{SuperGLUE}. However, deep learning models require a large amount of training data and are often memory and energy intensive, which limit their usability on low-resource devices (e.g. smartphones). Hyperdimensional computing (HDC), on the other hand, is a neuro-inspired approach to machine learning that is memory and energy efficient and may require far less training data to achieve suitable levels of accuracy \cite{HDC}. In short, HDC typically represents data as random high dimensional vectors (e.g. a word may be represented in $\{-1, 1\}^{10,000}$). HDC uses a variety of elementwise operations to operate on this data. In particular, addition is coordinatewise majority, mulitiplication is coordinatewise XOR, permutation is a rotation of coordinates (i.e. shift to the right), and comparison can be done using a hamming distance or cosine distance. These operations allow HDC to perform next word prediction, document retrieval, and classification, among other tasks.
+
+In this project, we will compare the performance of deep learning models (e.g. Transformers, Convolutional Neural Networks (CNN), Long Short-Term Memory (LSTM) models) to HDC models on a variety of NLP tasks using a range of metrics and evaluate their relative strengths and weaknesses.
+
+\section{Challenges}
+HDC is not as established as deep learning, and as a result, tools and frameworks may not be complete or have popular community support. The lack of support may create challenges for us in implementing HDC systems. In particular, we potentially have to develop some basic building blocks from scratch, e.g., implementing vectorized operations on the GPU for HDC algorithms.
+
+\section{Approach and Techniques}
+We aim to compare the performance of deep learning and HDC on the following NLP tasks: 
+\begin{enumerate}
+    \item missing word prediction - predicting the masked word in a given sentence
+    \item document retrieval - querying semantically similar content across several documents
+    \item language identification - detecting the language of a given sentence.
+\end{enumerate}
+
+To determine relative strengths and weaknesses, we will be capturing the following metrics:
+\begin{enumerate}
+    \item accuracy relative to different dataset sizes
+    \item training and inference time
+    \item energy consumption as measured by FLOPs \cite{desislavov2021compute}
+    \item robustness against input data corruption
+\end{enumerate}
+
+Our primary focus will be on the Transformer architecture but if time permits, we may also examine the performance of LSTMs and CNNs.
+
+\section{Implementation Details}
+We will primarily use Python for our implementation and use PyTorch and Hugging Face \cite{HF} to implement the deep learning models and TorchHD \cite{torchhd} to implement the HDC models. We intend to implement and run our experiments on a combination of laptops, Habanero, Google Colab, and a personal deep learning server. We plan to train and evaluate on the following corpora:
+\begin{enumerate}
+    \item missing word prediction - Wikipedia \cite{wikipedia}
+    \item document retrieval - the BEIR benchmark \cite{BEIR}
+    \item language identification - the Wortschatz Corpora \cite{quasthoff-etal-2006-corpus}.
+\end{enumerate}
+
+\section{Demo Planned}
+Besides doing the presentation in the class, we intend to build a web application that allows user to also test the aforementioned techniques with text input. We intend to build this using Streamlit\footnote{\url{https://github.com/streamlit/streamlit}} or Gradio\cite{abid2019gradio}, which will interface with our trained models.
+
+\printbibliography
+\end{document}
