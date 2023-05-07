@@ -16,7 +16,7 @@ def run_model(train_loader, test_loader, device):
     num_classes = len(train_loader.dataset.classes)
 
     model = None
-    output_dir = args.output_dir + '/model_save/{}/'.format(len(train_loader.dataset))
+    output_dir = args.output_dir + "/deeplearning_model_save/{}/".format(int(len(train_loader.dataset)))
 
     if not os.path.exists(output_dir):
         model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_classes)
@@ -46,7 +46,8 @@ def run_model(train_loader, test_loader, device):
         # retrieve saved model
         logging.info("Using saved model from {}".format(output_dir))
         model = DistilBertForSequenceClassification.from_pretrained(output_dir)
-        logging.info("Loaded the existing model from", output_dir)
+        model.to(device)
+        logging.info("Loaded the existing model from {}".format(output_dir))
 
     # prepare for testing
     model.eval()
@@ -87,7 +88,7 @@ def data_size_experiment(args):
         # run the model
         acc = run_model(train_loader, test_loader, args.device)
         temp_df = pd.DataFrame([[example_count, size, acc]], columns=['Examples', 'Dataset Pct.', 'Accuracy'])
-        df = df.append(temp_df)
+        df = df._append(temp_df)
     df = df.sort_values(by=['Dataset Pct.'])
     # create output_dir
     os.makedirs(args.output_dir, exist_ok=True)
