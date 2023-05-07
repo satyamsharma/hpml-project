@@ -75,7 +75,7 @@ def data_size_experiment(args):
         df = pd.read_csv(deeplearning_data_size_filepath)
     else:
         df = pd.DataFrame(columns=['Examples', 'Dataset Pct.', 'Accuracy'])
-    sizes = [0.0001, 0.001, 0.01, 0.02, 0.05]
+    sizes = [0.0001, 0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
     for size in sizes:
         if size in df['Dataset Pct.'].values:
             logging.info(f'Skipping {size * 100}% data size experiment; already ran.')
