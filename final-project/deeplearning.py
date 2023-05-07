@@ -18,7 +18,13 @@ def run_model(train_loader, test_loader, device):
     model = None
     output_dir = args.output_dir + "/deeplearning_model_save/{}/".format(int(len(train_loader.dataset)))
 
-    if not os.path.exists(output_dir):
+    if os.path.exists(output_dir) and args.use_cache:
+        # retrieve saved model
+        logging.info("Using saved model from {}".format(output_dir))
+        model = DistilBertForSequenceClassification.from_pretrained(output_dir)
+        model.to(device)
+        logging.info("Loaded the existing model from {}".format(output_dir))
+    else:
         model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_classes)
         model.to(device)
         model.train()
@@ -42,12 +48,6 @@ def run_model(train_loader, test_loader, device):
 
         logging.info("Saving model to %s" % output_dir)
         model.save_pretrained(output_dir)
-    else:
-        # retrieve saved model
-        logging.info("Using saved model from {}".format(output_dir))
-        model = DistilBertForSequenceClassification.from_pretrained(output_dir)
-        model.to(device)
-        logging.info("Loaded the existing model from {}".format(output_dir))
 
     # prepare for testing
     model.eval()
@@ -70,7 +70,7 @@ def data_size_experiment(args):
     """Vary the dataset size DeepLearning model."""
     logging.info('Running data size experiment...')
     deeplearning_data_size_filepath = os.path.join(args.output_dir, 'deeplearning_data_size.csv')
-    if os.path.exists(deeplearning_data_size_filepath):
+    if args.use_cache and os.path.exists(deeplearning_data_size_filepath):
         logging.info('Using cached data for deeplearning data size experiment...')
         df = pd.read_csv(deeplearning_data_size_filepath)
     else:
