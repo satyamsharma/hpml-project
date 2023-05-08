@@ -59,7 +59,7 @@ def parse_args(args=None):
                         type=str,
                         default='distilbert-base-uncased',
                         help='Tokenizer to use for the deep learning model.')
-    parser.add_argument('--experiment', type=str, default='baseline', help='Which experiment to run.', choices=['baseline', 'data-size', 'speed', 'all'])
+    parser.add_argument('--experiment', type=str, default='baseline', help='Which experiment to run.', choices=['baseline', 'data-size', 'speed', 'flop', 'all'])
     parser.add_argument('--use-cache', action='store_true', default=False, help='Whether to use cached experiment run data to speed up subsequent experiments or finetune table formatting.')
     args = parser.parse_args(args)
     # set log level based on command line argument

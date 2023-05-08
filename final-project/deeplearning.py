@@ -7,15 +7,17 @@ from tqdm import tqdm
 import torch.utils.data as data
 from transformers import DistilBertForSequenceClassification, AdamW
 
+from transformers import AutoTokenizer
 import pandas as pd
+
+from thop import profile
 
 from . import data
 from .args import parse_args
 
-def run_model(train_loader, test_loader, device):
-    num_classes = len(train_loader.dataset.classes)
-
+def get_trained_model(train_loader, device):
     model = None
+    num_classes = len(train_loader.dataset.classes)
     output_dir = args.output_dir + "/deeplearning_model_save/{}/".format(int(len(train_loader.dataset)))
 
     if os.path.exists(output_dir) and args.use_cache:
@@ -29,7 +31,6 @@ def run_model(train_loader, test_loader, device):
         model.to(device)
         model.train()
 
-        # TODO: consider paramaterizing the learning rate
         optim = AdamW(model.parameters(), lr=5e-5)
 
         # train the model
@@ -48,6 +49,12 @@ def run_model(train_loader, test_loader, device):
 
         logging.info("Saving model to %s" % output_dir)
         model.save_pretrained(output_dir)
+
+    return model
+
+def run_model(train_loader, test_loader, device):
+    model = get_trained_model(train_loader, device)
+    num_classes = len(train_loader.dataset.classes)
 
     # prepare for testing
     model.eval()
@@ -96,6 +103,45 @@ def data_size_experiment(args):
     # save as LaTeX table too, center columns
     df.to_latex(os.path.join(args.output_dir, 'deeplearning_data_size.tex'), index=False, float_format="%.4f", column_format='c' * len(df.columns))
 
+def flop_analysis(args):
+    """Flop analysis for single sample inference on model trained with full training set"""
+    logging.info('Running flop analysis experiment...')
+
+    flop_analysis_filepath = os.path.join(args.output_dir, 'flop_analysis.csv')
+    args.subset = 1
+
+    train_loader, _, _ = data.get_eurolang(**vars(args))
+    model = get_trained_model(train_loader, args.device)
+    model.eval()
+
+    tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
+    text = "The quick brown fox jumps over the lazy dog "
+    input_ids = tokenizer.encode(text, return_tensors="pt").to(args.device)
+
+    with torch.no_grad():
+        macs, params = profile(model, inputs=(input_ids,), verbose=False)
+        flops = macs * 2
+        print("Flops: ", flops)
+        print("Params: ", params)
+
+    if os.path.exists(flop_analysis_filepath):
+        logging.info('Using cached data for deeplearning data size experiment...')
+        df = pd.read_csv(flop_analysis_filepath)
+    else:
+        df = pd.DataFrame(columns=['Model', 'Parameters', 'FLOPs'])
+
+    df = df[df['Model'] != 'distilbert-base-uncased']
+
+    temp_df = pd.DataFrame([['distilbert-base-uncased', params, flops]], columns=['Model', 'Parameters', 'FLOPs'])
+    temp_df['Parameters'] = temp_df['Parameters'].astype('int')
+    temp_df['FLOPs'] = temp_df['FLOPs'].astype('int')
+    df = df._append(temp_df)
+    df = df.sort_values(by=['Model'])
+    # create output_dir
+    os.makedirs(args.output_dir, exist_ok=True)
+    df.to_csv(os.path.join(args.output_dir, 'flop_analysis.csv'), index=False)
+    # save as LaTeX table too, center columns
+    df.to_latex(os.path.join(args.output_dir, 'flop_analysis.tex'), index=False, column_format='c' * len(df.columns))
 
 def main(args):
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -108,7 +154,8 @@ def main(args):
         run_model(train_loader, test_loader, args.device)
     elif args.experiment == 'data-size' or args.experiment == 'all':
         data_size_experiment(args)
-
+    elif args.experiment == 'flop' or args.experiment == 'all':
+        flop_analysis(args)
 
 if __name__ == "__main__":
     args = parse_args()
