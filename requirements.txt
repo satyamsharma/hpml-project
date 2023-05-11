@@ -7,3 +7,5 @@ fvcore
 pandas
 gradio
 plotly
+tensorboard
+torch_tb_profiler

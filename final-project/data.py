@@ -26,7 +26,15 @@ from tqdm import tqdm
 
 from .args import parse_args
 
-CLASS_LABELS = ['Bulgarian', 'Czech', 'Danish', 'Dutch', 'German', 'English', 'Estonian', 'Finnish', 'French', 'Greek', 'Hungarian', 'Italian', 'Latvian', 'Lithuanian', 'Polish', 'Portuguese', 'Romanian', 'Slovak', 'Slovenian', 'Spanish', 'Swedish']
+CLASS_LABELS = [
+    'Bulgarian', 'Czech', 'Danish',
+    'Dutch', 'German', 'English',
+    'Estonian', 'Finnish', 'French',
+    'Greek', 'Hungarian', 'Italian',
+    'Latvian', 'Lithuanian', 'Polish',
+    'Portuguese', 'Romanian', 'Slovak',
+    'Slovenian', 'Spanish', 'Swedish'
+]
 DIMENSIONS = 10000
 # cap maximum sample size to 128 characters (including spaces)
 MAX_INPUT_SIZE = 128
@@ -36,6 +44,7 @@ ASCII_A = ord("a")
 ASCII_Z = ord("z")
 ASCII_SPACE = ord(" ")
 NUM_TOKENS = ASCII_Z - ASCII_A + 3  # a through z plus space and padding
+
 
 def corrupt_sentence(sentence, corruption_rate):
     """Corrupts a sentence by randomly inserting, deleting, swapping, or replacing
@@ -49,25 +58,30 @@ def corrupt_sentence(sentence, corruption_rate):
             corruption_type = random.randint(0, 3)
             if corruption_type == 0:
                 # insert a random character
-                sentence = sentence[:i] + chr(random.randint(ASCII_A, ASCII_Z)) + sentence[i:]
+                sentence = sentence[:i] + chr(random.randint(
+                    ASCII_A, ASCII_Z)) + sentence[i:]
             elif corruption_type == 1:
                 # delete the current character
-                sentence = sentence[:i] + sentence[i+1:]
+                sentence = sentence[:i] + sentence[i + 1:]
             elif corruption_type == 2:
                 # swap the current character with the next character
                 if i < len(sentence) - 1:
-                    sentence = sentence[:i] + sentence[i+1] + sentence[i] + sentence[i+2:]
+                    sentence = sentence[:i] + sentence[
+                        i + 1] + sentence[i] + sentence[i + 2:]
             else:
                 # replace the current character with a random character
-                sentence = sentence[:i] + chr(random.randint(ASCII_A, ASCII_Z)) + sentence[i+1:]
+                sentence = sentence[:i] + chr(random.randint(
+                    ASCII_A, ASCII_Z)) + sentence[i + 1:]
         # increment i
         i += 1
     return sentence
 
+
 def prepare_input_sentence(sentence):
     """Lowercases the sentence and removes any characters that are not in [a-z] or space."""
     sentence = sentence.lower()
-    sentence = ''.join([c for c in sentence if ((c >= 'a' and c <= 'z') or c == ' ')])
+    sentence = ''.join(
+        [c for c in sentence if ((c >= 'a' and c <= 'z') or c == ' ')])
     return sentence
 
 
@@ -131,7 +145,7 @@ def get_eurolang(data_dir,
                  tokenizer='distilbert-base-uncased',
                  corruption_rate=0.0,
                  **kwargs):
-    
+
     logging.info(f'Caching data in {data_dir}')
     # saves to/loads from args.data_dir/language-recognition
     train_ds = Languages(data_dir,
@@ -142,10 +156,11 @@ def get_eurolang(data_dir,
                         train=False,
                         transform=transform,
                         download=True)
-    
+
     # if corrupting text, replace test_ds.data with corrupted data
     if corruption_rate > 0.0:
-        logging.info(f'Corrupting the test dataset at {100*corruption_rate:.0f}%')
+        logging.info(
+            f'Corrupting the test dataset at {100*corruption_rate:.0f}%')
         corrupted_data = []
         for sentence in test_ds.data:
             corrupted_data.append(corrupt_sentence(sentence, corruption_rate))
@@ -205,6 +220,7 @@ def get_eurolang(data_dir,
     logging.debug(f'Validation size: {len(val_ds)}')
     logging.debug(f'Test size: {len(test_ds)}')
     return train_ld, val_ld, test_ld
+
 
 def main(args):
     sentence = 'the quick brown fox jumps over the lazy dog'

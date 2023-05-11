@@ -10,7 +10,7 @@ Examples:
     $ python -m final-project.hdc \
         --dataset eurolang \
         --subset 0.1 \
-        --roll-matrix
+        --roll-matri
 """
 from contextlib import nullcontext
 import logging
