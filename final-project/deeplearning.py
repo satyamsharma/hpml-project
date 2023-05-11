@@ -10,7 +10,7 @@ from transformers import DistilBertForSequenceClassification, AdamW
 from transformers import AutoTokenizer
 import pandas as pd
 
-from thop import profile
+from fvcore.nn import FlopCountAnalysis
 
 from . import data
 from .args import parse_args
@@ -124,10 +124,10 @@ def flop_analysis(args):
     input_ids = tokenizer.encode(text, return_tensors="pt").to(args.device)
 
     with torch.no_grad():
-        macs, params = profile(model, inputs=(input_ids,), verbose=False)
-        flops = macs * 2
+        flops = FlopCountAnalysis(model, input_ids).total()
+        params = sum(p.numel() for p in model.parameters())
         print("Flops: ", flops)
-        print("Params: ", params)
+        print("Parameters: ", params)
 
     args.subset = temp_subset
     if os.path.exists(flop_analysis_filepath):
