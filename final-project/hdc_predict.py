@@ -44,6 +44,7 @@ def main(args):
     for sentence in [english_sentence, french_sentence, italian_sentence, english_corrupted]:
         logging.info(f'Predicting sentence: {sentence}')
         prediction = predictor.predict(sentence)
+        probabilities = torch.nn.functional.softmax(prediction, dim=1).detach().cpu().numpy()[0]
         logging.info(f'The predicted class is {data.CLASS_LABELS[prediction.argmax(dim=1).item()]}')
     
     # verify test set accuracy

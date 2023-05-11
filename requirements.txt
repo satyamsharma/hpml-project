@@ -5,3 +5,5 @@ torchmetrics
 thop
 fvcore
 pandas
+gradio
+plotly

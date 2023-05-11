@@ -7,12 +7,17 @@ import plotly.graph_objects as go
 from transformers import AutoTokenizer
 from transformers import DistilBertForSequenceClassification
 
+from .hdc_predict import HDCPredictor, Encoder
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-deeplearning_model_dir = "tex/analysis/deeplearning_model_save/210032"
+deeplearning_model_dir = "/home/satyam/hpml-final-project/final-project/tex/analysis/deeplearning_model_save/210032"
 deeplearning_model = DistilBertForSequenceClassification.from_pretrained(deeplearning_model_dir)
 deeplearning_model.to(device)
 deeplearning_model.eval()
+
+hdc_dir = '/home/tm3229/hpml-final-project/final-project/tex/analysis/hdc'
+hdc_predictor = HDCPredictor(hdc_dir, device)
 
 EuropeanLanguagesIndexed = [
     "Bulgarian",
@@ -38,6 +43,7 @@ EuropeanLanguagesIndexed = [
     "Swedish",
 ]
 
+
 def deeplearning_predict_class(input_text):
     tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
     input_tensor = tokenizer.encode(input_text, return_tensors="pt",
@@ -53,8 +59,8 @@ def deeplearning_predict_class(input_text):
     return probabilities
 
 def hdc_predict_class(input_text):
-    probabilities = np.random.rand(21)
-
+    prediction = hdc_predictor.predict(input_text)
+    probabilities = torch.nn.functional.softmax(prediction, dim=1).detach().cpu().numpy()[0]
     return probabilities
 
 
@@ -73,12 +79,16 @@ def predict_class(input_text):
     fig.add_trace(go.Bar(
         x=EuropeanLanguagesIndexed,
         y=deeplearning_output,
-        name='Deep-Learning'
+        name='Deep Learning'
     ))
 
     fig.update_layout(barmode='group')
 
-    return fig
+    # get the predicted classes
+    hdc_predicted_class = EuropeanLanguagesIndexed[np.argmax(hdc_output)]
+    deeplearning_predicted_class = EuropeanLanguagesIndexed[np.argmax(deeplearning_output)]
+
+    return hdc_predicted_class, deeplearning_predicted_class, fig
 
 
 output = gr.Plot()
@@ -86,8 +96,12 @@ output = gr.Plot()
 iface = gr.Interface(
     fn=predict_class, 
     inputs=gr.inputs.Textbox(lines=2, placeholder='Enter Text...'),
-    outputs=output,
-    allow_flagging=False
+    outputs=[gr.outputs.Textbox(label="HDC Predicted Language"),
+        gr.outputs.Textbox(label="Deep Learning Predicted Language"),
+        gr.Plot()],
+    allow_flagging=False,
+    title="Language Prediction",
+    description="Enter a text and predict its language."
 )
 
 # Launch the app
