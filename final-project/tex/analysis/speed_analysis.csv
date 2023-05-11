@@ -1,4 +1,4 @@
 Model,Training-Time,Testing-Time
 HDC,101.3954375,10.215966796875
 HDC-Optimized,44.14224609375,4.526111328125
-distilbert-base-uncased,1426507.625,77738.8984375
+distilbert-base-uncased,1426.507625,77.7388984375

@@ -202,7 +202,7 @@ def speed_analysis(args):
     end.record()
 
     torch.cuda.synchronize()
-    training_time = start.elapsed_time(end)
+    training_time = start.elapsed_time(end)/1000
 
     print("Warming up testing...")
     with torch.no_grad():
@@ -223,7 +223,7 @@ def speed_analysis(args):
     end.record()
 
     torch.cuda.synchronize()
-    testing_time = start.elapsed_time(end)
+    testing_time = start.elapsed_time(end)/1000
 
     print("training_time ", training_time, " ms")
     print("testing_time ", testing_time, " ms")
