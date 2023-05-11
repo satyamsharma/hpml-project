@@ -4,3 +4,4 @@ transformers
 torchmetrics
 thop
 fvcore
+pandas

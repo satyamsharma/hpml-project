@@ -48,14 +48,8 @@ def main(args):
     
     # verify test set accuracy
     test_loader = data.get_eurolang(**vars(args))[2]
-    final_outputs, complete_labels, testing_time = test_model(predictor.centroid, predictor.encoder, test_loader, args.device)
-    accuracy = torchmetrics.Accuracy("multiclass", num_classes=len(test_loader.dataset.classes))
-    for outputs, labels in zip(final_outputs, complete_labels):
-        # TODO: understand what's happening under the hood here
-        # TODO: determine if accuracy can be run on the GPU
-        accuracy.update(outputs.cpu(), labels.cpu())
-    acc_loaded = accuracy.compute().item()
-    logging.info(f'Accuracy of loaded model: {100 * acc_loaded:.3f}%')
+    acc, testing_time = test_model(predictor.centroid, predictor.encoder, test_loader, args.device)
+    logging.info(f'Accuracy of loaded model: {100 * acc:.3f}%')
 
 if __name__ == '__main__':
     args = parse_args()

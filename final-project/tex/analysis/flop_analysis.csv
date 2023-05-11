@@ -1,3 +1,3 @@
 Model,Parameters,FLOPs
-HDC,0,0
+HDC,490000,210000
 distilbert-base-uncased,43135509,936371712

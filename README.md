@@ -15,3 +15,8 @@ We will use [distilbert-base-uncased](https://huggingface.co/distilbert-base-unc
 
 ### Hyperdimensional Computing Approach
 We will follow the approach of [this paper](https://iis-people.ee.ethz.ch/~arahimi/papers/ISLPED16.pdf) and use this reference implementation in [TorchHD](https://github.com/hyperdimensional-computing/torchhd/blob/main/examples/language_recognition.py).
+
+To run the experiments, execute the following command:
+```
+python -m final-project.hdc
+```

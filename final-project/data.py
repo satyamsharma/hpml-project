@@ -129,8 +129,9 @@ def get_eurolang(data_dir,
                  batch_size,
                  deep_learning=True,
                  tokenizer='distilbert-base-uncased',
+                 corruption_rate=0.0,
                  **kwargs):
-    # TODO: consider how to recycle this function for an inference dataset with no labels
+    
     logging.info(f'Caching data in {data_dir}')
     # saves to/loads from args.data_dir/language-recognition
     train_ds = Languages(data_dir,
@@ -141,6 +142,16 @@ def get_eurolang(data_dir,
                         train=False,
                         transform=transform,
                         download=True)
+    
+    # if corrupting text, replace test_ds.data with corrupted data
+    if corruption_rate > 0.0:
+        logging.info(f'Corrupting the test dataset at {100*corruption_rate:.0f}%')
+        corrupted_data = []
+        for sentence in test_ds.data:
+            corrupted_data.append(corrupt_sentence(sentence, corruption_rate))
+        # reassign to test_ds
+        test_ds.data = corrupted_data
+
     logging.debug(
         f'Loaded {len(train_ds)} training samples and {len(test_ds)} testing samples.'
     )
@@ -157,7 +168,7 @@ def get_eurolang(data_dir,
     # subset set dataset, if specified, for rapid development
     if (subset is not None) and (subset < 1.0):
         logging.info(
-            f'Subsetting training dataset to {subset*100:.0f}% of original size.'
+            f'Subsetting training dataset to {subset*100:.2f}% of original size.'
         )
         # select subset percent of indices
         train_indices = random.sample(range(len(train_ds)),
@@ -200,7 +211,6 @@ def main(args):
     logging.info(f'Original sentence: {sentence}')
     sentence = corrupt_sentence(sentence, corruption_rate=args.corruption_rate)
     logging.info(f'Corrupted sentence: {sentence}')
-    exit()
     train_loader, val_loader, test_loader = get_eurolang(**vars(args))
     logging.info('Sample batch:')
     for batch in train_loader:

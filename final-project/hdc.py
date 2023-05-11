@@ -32,6 +32,7 @@ from torchhd import embeddings
 from torchhd.models import Centroid
 from torchhd.datasets import EuropeanLanguages as Languages
 from thop import profile
+from fvcore.nn import FlopCountAnalysis
 
 from . import data
 from .args import parse_args
@@ -72,7 +73,10 @@ class Encoder(nn.Module):
             symbols_zero = symbols[:, 2:, -3:]
             # element-wise multiply the three rolls
             symbols_rolled = symbols_zero * symbols_one * symbols_two
-            symbols_mult = symbols[:, 0:-2, :] * symbols[:, 1:-1, :] * symbols[:, 2:, :]
+            symbols_mult = symbols[:,
+                                   0:-2, :] * symbols[:,
+                                                      1:-1, :] * symbols[:,
+                                                                         2:, :]
             # set the elements in symbols_mult to symbols_rolled
             symbols_mult[:, :, -3:] = symbols_rolled
             # row-wise sum
@@ -80,6 +84,7 @@ class Encoder(nn.Module):
         else:
             sample_hv = torchhd.ngrams(symbols, n=3)
         return torchhd.hard_quantize(sample_hv)
+
 
 def test_model(model, encode, test_loader, device):
     final_outputs = []
@@ -103,13 +108,24 @@ def test_model(model, encode, test_loader, device):
         torch.cuda.synchronize()
         testing_time = test_start.elapsed_time(test_end) / 1000
         logging.info(f"Testing time: {testing_time:.3f}s")
-    return final_outputs, complete_labels, testing_time
-    
-def run_model(train_loader,
-              test_loader,
-              args, record_speed=False):
+
+    accuracy = torchmetrics.Accuracy("multiclass",
+                                     num_classes=len(
+                                         test_loader.dataset.classes))
+    for outputs, labels in zip(final_outputs, complete_labels):
+        # TODO: understand what's happening under the hood here
+        # TODO: determine if accuracy can be run on the GPU
+        accuracy.update(outputs.cpu(), labels.cpu())
+    acc = accuracy.compute().item()
+    logging.info(f'Test accuracy of the model: {100 * acc:.3f}%')
+    return acc, testing_time
+
+
+def run_model(train_loader, test_loader, args, record_speed=False):
     """Run the HDC model."""
-    encode = Encoder(data.DIMENSIONS, data.NUM_TOKENS, roll_matrix=args.roll_matrix)
+    encode = Encoder(data.DIMENSIONS,
+                     data.NUM_TOKENS,
+                     roll_matrix=args.roll_matrix)
     encode = encode.to(args.device)
 
     num_classes = len(train_loader.dataset.classes)
@@ -154,35 +170,34 @@ def run_model(train_loader,
         torch.cuda.synchronize()
         training_time = train_start.elapsed_time(train_end) / 1000
         logging.info(f"Training time: {training_time:.3f}s")
-    
+
     if profiler:
         # profiler.export_chrome_trace(os.path.join(log_dir, 'trace.json'))
         logging.info(profiler.key_averages().table(sort_by='cuda_time_total',
                                                    row_limit=10))
 
-    accuracy = torchmetrics.Accuracy("multiclass", num_classes=num_classes)
-
     acc = None
     if test_loader is not None:
-        final_outputs, complete_labels, testing_time = test_model(model, encode, test_loader, args.device)
-        for outputs, labels in zip(final_outputs, complete_labels):
-            # TODO: understand what's happening under the hood here
-            # TODO: determine if accuracy can be run on the GPU
-            accuracy.update(outputs.cpu(), labels.cpu())
-        acc = accuracy.compute().item()
-        logging.info(f"Testing accuracy of {(acc * 100):.3f}%")
-        
+        acc, testing_time = test_model(model, encode, test_loader, args.device)
+
     # record times
     if args.output_dir is not None and record_speed:
-        speed_analysis_filepath = os.path.join(args.output_dir, 'speed_analysis.csv')
+        speed_analysis_filepath = os.path.join(args.output_dir,
+                                               'speed_analysis.csv')
         if os.path.exists(speed_analysis_filepath):
             df = pd.read_csv(speed_analysis_filepath)
         else:
-            df = pd.DataFrame(columns=['Model', 'Training-Time', 'Testing-Time'])
-        temp_df = pd.DataFrame([['HDC', training_time, testing_time]], columns=['Model', 'Training-Time', 'Testing-Time'])
+            df = pd.DataFrame(
+                columns=['Model', 'Training-Time', 'Testing-Time'])
+        model = 'HDC'
+        if args.roll_matrix:
+            model = 'HDC-Optimized'
+        temp_df = pd.DataFrame(
+            [[model, training_time, testing_time]],
+            columns=['Model', 'Training-Time', 'Testing-Time'])
         # overwrite HDC row if it exists
-        if 'HDC' in df['Model'].values:
-            df.loc[df['Model'] == 'HDC'] = temp_df.iloc[:1]
+        if model in df['Model'].values:
+            df.loc[df['Model'] == model] = temp_df.iloc[:1]
         else:
             df = pd.concat((df, temp_df))
         df = df.sort_values(by=['Model'])
@@ -190,9 +205,10 @@ def run_model(train_loader,
         os.makedirs(args.output_dir, exist_ok=True)
         df.to_csv(speed_analysis_filepath, index=False)
         # save as LaTeX table too, center columns
-        df.to_latex(os.path.join(args.output_dir, 'speed_analysis.tex'), index=False, column_format='c' * len(df.columns))
+        df.to_latex(os.path.join(args.output_dir, 'speed_analysis.tex'),
+                    index=False,
+                    column_format='c' * len(df.columns))
     return acc, model, encode
-
 
 
 def data_size_experiment(args):
@@ -204,9 +220,9 @@ def data_size_experiment(args):
         df = pd.read_csv(hdc_data_size_filepath)
     else:
         df = pd.DataFrame(columns=['Examples', 'Dataset Pct.', 'Accuracy'])
-    sizes = [0.0001, 0.001, 0.01, 0.02, 0.05]
+    sizes = [0.0001, 0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
     for size in sizes:
-        if size in df['Dataset Pct.'].values:
+        if args.use_cache and (size in df['Dataset Pct.'].values):
             logging.info(
                 f'Skipping {size * 100}% data size experiment; already ran.')
             continue
@@ -218,11 +234,11 @@ def data_size_experiment(args):
         )
 
         # run the model
-        acc, _, _ = run_model(train_loader, test_loader, args.device)
+        acc, _, _ = run_model(train_loader, test_loader, args)
         temp_df = pd.DataFrame(
             [[example_count, size, acc]],
             columns=['Examples', 'Dataset Pct.', 'Accuracy'])
-        df = df.append(temp_df)
+        df = pd.concat((df, temp_df))
     df = df.sort_values(by=['Dataset Pct.'])
     # create output_dir
     os.makedirs(args.output_dir, exist_ok=True)
@@ -245,32 +261,37 @@ def flop_analysis(args):
             logging.info('Skipping flop analysis experiment; already ran.')
             logging.info(df)
             return
-
-    train_loader, _, _ = data.get_eurolang(**vars(args))
-    _, model, encode = run_model(train_loader, None, args.device, enable_profiler=args.profiler, log_dir=args.log_dir)
+    # try to load an existing model
+    hdc_model_dir = os.path.join(args.output_dir, 'hdc')
+    centroid_filepath = os.path.join(hdc_model_dir, 'centroid.pkl')
+    encoder_filepath = os.path.join(hdc_model_dir, 'encoder.pkl')
+    if os.path.exists(centroid_filepath) and os.path.exists(encoder_filepath):
+        model, encode = load_model(centroid_filepath, encoder_filepath)
+    else:
+        # otherwise obtain a trained model
+        train_loader, _, _ = data.get_eurolang(**vars(args))
+        _, model, encode = run_model(train_loader, None, args.device)
     model.eval()
     text = "The quick brown fox jumps over the lazy dog "
     prepared_input = data.prepare_input_sentence(text)
-    encoded_sentence = data.transform(prepared_input).unsqueeze(0).to(args.device)
+    encoded_sentence = data.transform(prepared_input).unsqueeze(0).to(
+        args.device)
 
-    macs = 0
     params = 0
     flops = 0
     with torch.no_grad():
-        macs_, params_ = profile(encode, inputs=(encoded_sentence,), verbose=False)
-        flops_ = macs_ * 2
-        logging.info(f"Encoding FLOPs: {flops_}",)
+        flops_ = FlopCountAnalysis(encode, encoded_sentence).total()
+        params_ = sum(p.numel() for p in encode.parameters())
+        logging.info(f"Encoding FLOPs: {flops_}", )
         logging.info(f"Encoding Params: {params_}")
-        macs += macs_
         params += params_
         flops += flops_
 
         samples_hv = encode(encoded_sentence)
-        macs_, params_ = profile(model, inputs=(samples_hv,), verbose=False)
-        flops_ = macs_ * 2
+        flops_ = FlopCountAnalysis(model, samples_hv).total()
+        params_ = sum(p.numel() for p in model.parameters())
         logging.info(f"Model FLOPs: {flops_}")
         logging.info(f"Model Params: {params_}")
-        macs += macs_
         params += params_
         flops += flops_
 
@@ -279,8 +300,9 @@ def flop_analysis(args):
         df = pd.read_csv(flop_analysis_filepath)
     else:
         df = pd.DataFrame(columns=['Model', 'Parameters', 'FLOPs'])
-    
-    temp_df = pd.DataFrame([['HDC', params, flops]], columns=['Model', 'Parameters', 'FLOPs'])
+
+    temp_df = pd.DataFrame([['HDC', params, flops]],
+                           columns=['Model', 'Parameters', 'FLOPs'])
     temp_df['Parameters'] = temp_df['Parameters'].astype('int')
     temp_df['FLOPs'] = temp_df['FLOPs'].astype('int')
     # overwrite HDC row if it exists
@@ -293,7 +315,58 @@ def flop_analysis(args):
     os.makedirs(args.output_dir, exist_ok=True)
     df.to_csv(flop_analysis_filepath, index=False)
     # save as LaTeX table too, center columns
-    df.to_latex(os.path.join(args.output_dir, 'flop_analysis.tex'), index=False, column_format='c' * len(df.columns))
+    df.to_latex(os.path.join(args.output_dir, 'flop_analysis.tex'),
+                index=False,
+                column_format='c' * len(df.columns))
+
+
+def corruption_experiment(args):
+    """Vary the corruption of the test dataset for the HDC model."""
+    logging.info('Running data corruption experiment...')
+    hdc_corruption_filepath = os.path.join(args.output_dir,
+                                           'hdc_corruption.csv')
+    if args.use_cache and os.path.exists(hdc_corruption_filepath):
+        logging.info('Using cached data for HDC corruption experiment...')
+        df = pd.read_csv(hdc_corruption_filepath)
+    else:
+        df = pd.DataFrame(columns=['Corruption Rate', 'Accuracy'])
+
+    # try to load an existing model
+    hdc_model_dir = os.path.join(args.output_dir, 'hdc')
+    centroid_filepath = os.path.join(hdc_model_dir, 'centroid.pkl')
+    encoder_filepath = os.path.join(hdc_model_dir, 'encoder.pkl')
+    if os.path.exists(centroid_filepath) and os.path.exists(encoder_filepath):
+        centroid, encoder = load_model(centroid_filepath, encoder_filepath)
+    else:
+        # otherwise obtain a trained model
+        train_loader, _, _ = data.get_eurolang(**vars(args))
+        _, centroid, encoder = run_model(train_loader, None, args.device)
+
+    rates = [0.0001, 0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
+    for rate in rates:
+        if args.use_cache and (rate in df['Corruption Rate'].values):
+            logging.info(
+                f'Skipping {rate * 100}% data corruption experiment; already ran.'
+            )
+            continue
+        args.corruption_rate = rate
+        _, _, test_loader = data.get_eurolang(**vars(args))
+        logging.info(f'Testing with {rate * 100}% test set corruption rate...')
+        acc, _ = test_model(centroid, encoder, test_loader, args.device)
+
+        temp_df = pd.DataFrame([[rate, acc]],
+                               columns=['Corruption Rate', 'Accuracy'])
+        df = pd.concat((df, temp_df))
+
+    df = df.sort_values(by=['Corruption Rate'])
+    # create output_dir
+    os.makedirs(args.output_dir, exist_ok=True)
+    df.to_csv(os.path.join(args.output_dir, 'hdc_corruption.csv'), index=False)
+    # save as LaTeX table too, center columns
+    df.to_latex(os.path.join(args.output_dir, 'hdc_corruption.tex'),
+                index=False,
+                float_format="%.4f",
+                column_format='c' * len(df.columns))
 
 
 def load_model(centroid_filepath, encoder_filepath):
@@ -303,6 +376,7 @@ def load_model(centroid_filepath, encoder_filepath):
     with open(encoder_filepath, 'rb') as f:
         encoder_loaded = pickle.load(f)
     return centroid_loaded, encoder_loaded
+
 
 def save_model(centroid, encoder, acc, args):
     # save the centroid and encoder
@@ -315,18 +389,14 @@ def save_model(centroid, encoder, acc, args):
         pickle.dump(centroid, f)
     with open(encoder_filepath, 'wb') as f:
         pickle.dump(encoder, f)
-    
-    centroid_loaded, encoder_loaded = load_model(centroid_filepath, encoder_filepath)
+
+    centroid_loaded, encoder_loaded = load_model(centroid_filepath,
+                                                 encoder_filepath)
     _, _, test_loader = data.get_eurolang(**vars(args))
-    final_outputs, complete_labels, testing_time = test_model(centroid_loaded, encoder_loaded, test_loader, args.device)
-    accuracy = torchmetrics.Accuracy("multiclass", num_classes=len(test_loader.dataset.classes))
-    for outputs, labels in zip(final_outputs, complete_labels):
-        # TODO: understand what's happening under the hood here
-        # TODO: determine if accuracy can be run on the GPU
-        accuracy.update(outputs.cpu(), labels.cpu())
-    acc_loaded = accuracy.compute().item()
-    logging.info(f'Accuracy of loaded model: {acc_loaded}')
+    acc_loaded, testing_time = test_model(centroid_loaded, encoder_loaded,
+                                          test_loader, args.device)
     assert acc == acc_loaded, 'Loaded model accuracy does not match original model accuracy'
+
 
 def main(args):
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -338,12 +408,15 @@ def main(args):
         acc, centroid, encoder = run_model(train_loader, test_loader, args)
         if args.save_model:
             save_model(centroid, encoder, acc, args)
-    elif args.experiment == 'data-size' or args.experiment == 'all':
+    if args.experiment == 'data-size' or args.experiment == 'all':
         data_size_experiment(args)
-    elif args.experiment == 'flop' or args.experiment == 'all':
+    if args.experiment == 'flop' or args.experiment == 'all':
         flop_analysis(args)
-    elif args.experiment == 'speed' or args.experiment == 'all':
+    if args.experiment == 'speed' or args.experiment == 'all':
+        logging.info('Running speed experiment...')
         run_model(train_loader, test_loader, args, record_speed=True)
+    if args.experiment == 'corruption' or args.experiment == 'all':
+        corruption_experiment(args)
 
 
 if __name__ == "__main__":
