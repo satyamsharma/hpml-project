@@ -1,2 +1,3 @@
 Model,Training-Time,Testing-Time
+HDC,10.881009765625,7.53813916015625
 distilbert-base-uncased,1426507.625,77738.8984375

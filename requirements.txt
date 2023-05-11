@@ -1,0 +1,6 @@
+torch
+torch-hd
+transformers
+torchmetrics
+thop
+fvcore

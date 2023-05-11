@@ -24,7 +24,8 @@ def parse_args(args=None):
                         default='~/Documents/data')
     parser.add_argument('--output-dir',
                         type=os.path.expanduser,
-                        default='~/Documents/hpml/final-project/tex/analysis')
+                        default='~/Documents/hpml-final-project/final-project/tex/analysis')
+    parser.add_argument('--log-dir', type=os.path.expanduser, default='~/Documents/hpml-final-project/logs', help='Directory to store logs such as profiler output.')
     parser.add_argument('--subset',
                         type=float,
                         default=1.0,
@@ -36,6 +37,7 @@ def parse_args(args=None):
         help=
         'Percentage of training dataset to use with the remainder used as a validation set. If subset is specified, then the training dataset is first subsetted. Then train-size percent of the subsetted data is used as the training set and the remainder is used for a validation set.'
     )
+    parser.add_argument('--corruption-rate', type=float, default=0.0, help='Corruption rate for the training data sentences.')
     parser.add_argument('--seed',
                         type=int,
                         default=42,
@@ -44,6 +46,7 @@ def parse_args(args=None):
                         type=int,
                         default=32,
                         help='Batch size.')
+    parser.add_argument('--roll-matrix', action='store_true', default=False, help='Whether to use a roll matrix for the encoder.')
     parser.add_argument(
         '--log-level',
         type=str,
@@ -59,8 +62,10 @@ def parse_args(args=None):
                         type=str,
                         default='distilbert-base-uncased',
                         help='Tokenizer to use for the deep learning model.')
+    parser.add_argument('--profiler', action='store_true', default=False, help='Whether to run the profiler.')
     parser.add_argument('--experiment', type=str, default='baseline', help='Which experiment to run.', choices=['baseline', 'data-size', 'speed', 'flop', 'all'])
     parser.add_argument('--use-cache', action='store_true', default=False, help='Whether to use cached experiment run data to speed up subsequent experiments or finetune table formatting.')
+    parser.add_argument('--save-model', action='store_true', default=False, help='Whether to save the model.')
     args = parser.parse_args(args)
     # set log level based on command line argument
     numeric_level = getattr(logging, args.log_level.upper(), None)
