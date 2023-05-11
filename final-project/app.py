@@ -2,6 +2,7 @@ import gradio as gr
 import torch
 
 import numpy as np
+import plotly.graph_objects as go
 
 from transformers import AutoTokenizer
 from transformers import DistilBertForSequenceClassification
@@ -47,31 +48,45 @@ def deeplearning_predict_class(input_text):
     
     with torch.no_grad():
         output = deeplearning_model(input_ids=input_tensor)
-        probabilities = torch.nn.functional.softmax(output.logits, dim=1).detach().cpu().numpy()
+        probabilities = torch.nn.functional.softmax(output.logits, dim=1).detach().cpu().numpy()[0]
 
-    return {label: float(prob) for label, prob in zip(EuropeanLanguagesIndexed, probabilities[0])}
+    return probabilities
 
-    
 def hdc_predict_class(input_text):
-    probabilities = np.zeros(len(EuropeanLanguagesIndexed))
-    
-    return {label: float(prob) for label, prob in zip(EuropeanLanguagesIndexed, probabilities)}
+    probabilities = np.random.rand(21)
+
+    return probabilities
 
 
 def predict_class(input_text):
     hdc_output = hdc_predict_class(input_text)
     deeplearning_output = deeplearning_predict_class(input_text)
 
-    return hdc_output, deeplearning_output
+    fig = go.Figure()
 
+    fig.add_trace(go.Bar(
+        x=EuropeanLanguagesIndexed,
+        y=hdc_output,
+        name='HDC'
+    ))
+
+    fig.add_trace(go.Bar(
+        x=EuropeanLanguagesIndexed,
+        y=deeplearning_output,
+        name='Deep-Learning'
+    ))
+
+    fig.update_layout(barmode='group')
+
+    return fig
+
+
+output = gr.Plot()
 
 iface = gr.Interface(
     fn=predict_class, 
     inputs=gr.inputs.Textbox(lines=2, placeholder='Enter Text...'),
-    outputs=[
-        gr.outputs.Label(num_top_classes=5),
-        gr.outputs.Label(num_top_classes=5)
-    ],
+    outputs=output,
     allow_flagging=False
 )
 
