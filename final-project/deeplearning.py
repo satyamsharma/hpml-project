@@ -248,6 +248,52 @@ def speed_analysis(args):
     # save as LaTeX table too, center columns
     df.to_latex(os.path.join(args.output_dir, 'speed_analysis.tex'), index=False, column_format='c' * len(df.columns))
 
+def corruption_experiment(args):
+    """Vary the corruption of the test dataset for the deeplearning model."""
+    logging.info('Running data corruption experiment...')
+    deeplearning_corruption_filepath = os.path.join(args.output_dir,
+                                           'deeplearning_corruption.csv')
+    if args.use_cache and os.path.exists(deeplearning_corruption_filepath):
+        logging.info('Using cached data for deeplearning corruption experiment...')
+        df = pd.read_csv(deeplearning_corruption_filepath)
+    else:
+        df = pd.DataFrame(columns=['Corruption Rate', 'Accuracy'])
+
+    temp_subset = args.subset
+    args.subset = 1
+    train_loader, _, _ = data.get_eurolang(**vars(args))
+
+    model = get_trained_model(train_loader, args.device)
+    model.eval()
+
+    rates = [0.0001, 0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
+
+    for rate in rates:
+        if args.use_cache and (rate in df['Corruption Rate'].values):
+            logging.info(
+                f'Skipping {rate * 100}% data corruption experiment; already ran.'
+            )
+            continue
+        args.corruption_rate = rate
+        _, _, test_loader = data.get_eurolang(**vars(args))
+        logging.info(f'Testing with {rate * 100}% test set corruption rate...')
+        acc = run_model(train_loader, test_loader, args.device)
+
+        temp_df = pd.DataFrame([[rate, acc]],
+                               columns=['Corruption Rate', 'Accuracy'])
+        df = pd.concat((df, temp_df))
+
+    df = df.sort_values(by=['Corruption Rate'])
+    # create output_dir
+    os.makedirs(args.output_dir, exist_ok=True)
+    df.to_csv(os.path.join(args.output_dir, 'deeplearning_corruption.csv'), index=False)
+    # save as LaTeX table too, center columns
+    df.to_latex(os.path.join(args.output_dir, 'deeplearning_corruption.tex'),
+                index=False,
+                float_format="%.4f",
+                column_format='c' * len(df.columns))
+
+    args.subset = temp_subset
 
 def main(args):
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -264,6 +310,8 @@ def main(args):
         flop_analysis(args)
     elif args.experiment == 'speed' or args.experiment == 'all':
         speed_analysis(args)
+    if args.experiment == 'corruption' or args.experiment == 'all':
+        corruption_experiment(args)
 
 if __name__ == "__main__":
     args = parse_args()
