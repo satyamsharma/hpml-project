@@ -18,5 +18,6 @@ We will follow the approach of [this paper](https://iis-people.ee.ethz.ch/~arahi
 
 To run the experiments, execute the following command:
 ```
-python -m final-project.hdc
+python -m final-project.deeplearning --deep-learning --experiment all
+python -m final-project.hdc --experiment all
 ```
