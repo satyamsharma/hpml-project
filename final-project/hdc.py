@@ -1,16 +1,13 @@
 """This module implements the hyperdimensional computing (HDC) experiments.
 
-The experiments (for each dataset) are as follows:
-- Accuracy, precision, recall, and F1-score with respect to dataset size
+The experiments are as follows:
+- Accuracy with respect to dataset size
 - Training and inference time
-- FLOP analysis
+- FLOP and memory analysis
 - Robustness to text data corruption
 
 Examples:
-    $ python -m final-project.hdc \
-        --dataset eurolang \
-        --subset 0.1 \
-        --roll-matri
+    $ python -m final-project.hdc
 """
 from contextlib import nullcontext
 import logging

@@ -1,6 +1,10 @@
 """This module contains functions for loading and processing data.
 
-In particular, we want to be able to specify a data set and any necessary configurations for that dataset. For example, this module can load the European Languages dataset and return train and test Torch data loaders for that dataset, subsetted by a specified percentage. This module should also implement the text corruption functions.
+In particular, we want to be able to specify a data set and any necessary 
+configurations for that dataset. For example, this module can load the European
+Languages dataset and return train and test Torch data loaders for that dataset,
+subsetted by a specified percentage. This module also implements the text
+corruption functions.
 
 Examples:
     $ python -m final-project.data \
@@ -12,7 +16,6 @@ Examples:
         --subset 0.1 \
         --corruption-rate 0.1
 """
-import os
 import logging
 from . import logconfig
 
