@@ -12,9 +12,11 @@ Examples:
         --subset 0.1 \
         --corruption-rate 0.1
 """
+import os
 import logging
 from . import logconfig
 
+import pandas as pd
 from transformers import DataCollatorWithPadding, AutoTokenizer
 import random
 import torch
@@ -27,13 +29,10 @@ from tqdm import tqdm
 from .args import parse_args
 
 CLASS_LABELS = [
-    'Bulgarian', 'Czech', 'Danish',
-    'Dutch', 'German', 'English',
-    'Estonian', 'Finnish', 'French',
-    'Greek', 'Hungarian', 'Italian',
-    'Latvian', 'Lithuanian', 'Polish',
-    'Portuguese', 'Romanian', 'Slovak',
-    'Slovenian', 'Spanish', 'Swedish'
+    'Bulgarian', 'Czech', 'Danish', 'Dutch', 'German', 'English', 'Estonian',
+    'Finnish', 'French', 'Greek', 'Hungarian', 'Italian', 'Latvian',
+    'Lithuanian', 'Polish', 'Portuguese', 'Romanian', 'Slovak', 'Slovenian',
+    'Spanish', 'Swedish'
 ]
 DIMENSIONS = 10000
 # cap maximum sample size to 128 characters (including spaces)
@@ -232,6 +231,26 @@ def main(args):
     for batch in train_loader:
         print(batch)
         break
+
+    # print train and test set size
+    logging.info(f'Train size: {len(train_loader.dataset)}')
+    logging.info(f'Test size: {len(test_loader.dataset)}')
+
+    # sample single example from each of the languages
+    data_examples = []
+    for lang in test_loader.dataset.classes:
+        lang_idx = test_loader.dataset.classes.index(lang)
+        lang_indices = [
+            i for i, label in enumerate(test_loader.dataset.targets)
+            if label == lang_idx
+        ]
+        idx = random.choice(lang_indices)
+        logging.info(f'{lang}: {test_loader.dataset.data[idx]}')
+        data_examples.append((lang, test_loader.dataset.data[idx]))
+
+    # convert to a dataframe and save as a .tex file
+    df = pd.DataFrame(data_examples, columns=['Language', 'Example'])
+    # df.sample(n=5).to_latex(os.path.join(args.output_dir, 'examples.tex'), index=False)
 
 
 if __name__ == '__main__':
