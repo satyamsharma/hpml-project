@@ -32,6 +32,7 @@ We followed the architecured in [this paper](https://iis-people.ee.ethz.ch/~arah
 
 To run the experiments, execute the following command:
 ```
+<<<<<<< HEAD
 python -m final-project.hdc --experiment all
 ```
 
@@ -42,6 +43,10 @@ python -m final-project.hdc --experiment baseline --profiler
 python -m final-project.hdc --experiment baseline --profiler --roll-matrix
 ```
 Then run the following command to view the results:
+=======
+python -m final-project.deeplearning --deep-learning --experiment all
+python -m final-project.hdc --experiment all
+>>>>>>> af2391ed737647ac2e81986adb1e831cdc071bd9
 ```
 tensorboard --logdir=./logs
 ```
