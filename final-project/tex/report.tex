@@ -36,15 +36,47 @@ hyperdimensional computing, HDC, deep learning, natural language processing, NLP
 \end{IEEEkeywords}
 
 \section{Introduction}
-\cite{BEIR}
+% Introduce the problem you are solving and motivation behind it
+Deep learning is currently the dominant approach in natural language processing (NLP). In particular, the Transformer \cite{Transformer} architecture has been shown to be effective for a wide range of NLP tasks, including language modeling (i.e. next word prediction), document retrieval, and document classification \cite{SuperGLUE}. However, deep learning models require a large amount of training data and are often memory and energy intensive, which limit their usability on low-resource devices (e.g. smartphones). Hyperdimensional computing (HDC), on the other hand, is a neuro-inspired approach to machine learning that is memory and energy efficient and may require far less training data to achieve suitable levels of accuracy \cite{HDC}. In short, HDC typically represents data as random high dimensional vectors (e.g. a word may be represented in $\{-1, 1\}^{10,000}$). HDC uses a variety of elementwise operations to operate on this data. In particular, addition is coordinatewise majority, mulitiplication is coordinatewise XOR, permutation is a rotation of coordinates (i.e. shift to the right), and comparison can be done using a hamming distance or cosine distance. These operations allow HDC to perform next word prediction, document retrieval, and classification, among other tasks.
 
-\section{Results}
+In this project, we will compare the performance of deep learning models (e.g. Transformers, Convolutional Neural Networks (CNN), Long Short-Term Memory (LSTM) models) to HDC models on a variety of NLP tasks using a range of metrics and evaluate their relative strengths and weaknesses.
 
+\section{Models and Data Set(s) Description}
+We aim to compare the performance of deep learning and HDC on the following NLP tasks: 
+\begin{enumerate}
+    \item missing word prediction - predicting the masked word in a given sentence
+    \item document retrieval - querying semantically similar content across several documents
+    \item language identification - detecting the language of a given sentence.
+\end{enumerate}
+
+To determine relative strengths and weaknesses, we will be capturing the following metrics:
+\begin{enumerate}
+    \item accuracy relative to different dataset sizes
+    \item training and inference time
+    \item energy consumption as measured by FLOPs \cite{desislavov2021compute}
+    \item robustness against input data corruption
+\end{enumerate}
+
+\section{Training and Profiling Methodology}
+We will primarily use Python for our implementation and use PyTorch and Hugging Face \cite{HF} to implement the deep learning models and TorchHD \cite{torchhd} to implement the HDC models. We intend to implement and run our experiments on a combination of laptops, Habanero, Google Colab, and a personal deep learning server. We plan to train and evaluate on the following corpora:
+\begin{enumerate}
+    \item missing word prediction - Wikipedia \cite{wikipedia}
+    \item document retrieval - the BEIR benchmark \cite{BEIR}
+    \item language identification - the Wortschatz Corpora \cite{quasthoff-etal-2006-corpus}.
+\end{enumerate}
+
+\section{Performance Tuning Methodology}
+
+\section{Experimental Results}
+
+\section{Conclusion}
+
+\section{Appendix}
 % include table
 \begin{table}[htbp]
 \caption{HDC accuracy scores by dataset size.}
 \begin{center}
-    \include{analysis/hdc_data_size.tex}
+    \input{analysis/hdc_data_size.tex}
 \end{center}
 \label{tab:hdc_acc}
 \end{table}
@@ -52,7 +84,7 @@ hyperdimensional computing, HDC, deep learning, natural language processing, NLP
 \begin{table}[htbp]
     \caption{Deep learning accuracy scores by dataset size.}
     \begin{center}
-        \include{analysis/deeplearning_data_size.tex}
+        \input{analysis/deeplearning_data_size.tex}
     \end{center}
     \label{tab:dl_acc}
 \end{table}
@@ -60,7 +92,7 @@ hyperdimensional computing, HDC, deep learning, natural language processing, NLP
 \begin{table}[htbp]
     \caption{Deep learning speed analysis.}
     \begin{center}
-        \include{analysis/speed_analysis.tex}
+        \input{analysis/speed_analysis.tex}
     \end{center}
     \label{tab:dl_speed}
 \end{table}
@@ -68,7 +100,7 @@ hyperdimensional computing, HDC, deep learning, natural language processing, NLP
 \begin{table}[htbp]
     \caption{Deep learning FLOP analysis.}
     \begin{center}
-        \include{analysis/flop_analysis.tex}
+        \input{analysis/flop_analysis.tex}
     \end{center}
     \label{tab:dl_flop}
 \end{table}

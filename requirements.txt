@@ -9,3 +9,4 @@ gradio
 plotly
 tensorboard
 torch_tb_profiler
+matplotlib

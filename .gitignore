@@ -165,6 +165,7 @@ cython_debug/
 *.fdb_latexmk
 *.fls
 *.synctex.gz
+*.bbl
 
 logs
 
